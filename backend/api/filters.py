@@ -28,7 +28,7 @@ class RecipetFilter(filters.FilterSet):
             return Favorite.objects.none()
         favorites = Favorite.objects.filter(user=self.request.user)
         return queryset.filter(
-            id__in=[recipe.recipes_id for recipe in favorites]
+            id__in=favorites.values_list('recipes_id', flat=True)
         )
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
@@ -36,7 +36,7 @@ class RecipetFilter(filters.FilterSet):
             return ShoppingList.objects.none()
         shopping_cart = ShoppingList.objects.filter(user=self.request.user)
         return queryset.filter(
-            id__in=[recipe.recipes_id for recipe in shopping_cart]
+            id__in=shopping_cart.values_list('recipes_id', flat=True)
         )
 
     class Meta:
