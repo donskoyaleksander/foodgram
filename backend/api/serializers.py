@@ -10,6 +10,7 @@ from .validators import (
     cooking_time_validator,
     ingredient_amount_validator
 )
+from .utils import get_ingredients_data
 from recipes.models import (
     User,
     Recipe,
@@ -25,17 +26,10 @@ from recipes.models import (
 class UserSerializer(UserCreateSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
-    def get_is_subscribed(self, obj):
-        if 'is_subscribed' in dir(obj):
-            return obj.is_subscribed
-        return False
-
-    def get_fields(self):
-        fields = super().get_fields()
-        exclude_fields = self.context.get('exclude_fields', [])
-        for field in exclude_fields:
-            fields.pop(field, default=None)
-        return fields
+    # def get_is_subscribed(self, obj):
+    #     if 'is_subscribed' in dir(obj):
+    #         return obj.is_subscribed
+    #     return False
 
     class Meta:
         model = User
@@ -56,9 +50,8 @@ class AvatarSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         avatar_data = validated_data.get('avatar', None)
-        if avatar_data:
-            file = ContentFile(avatar_data.read())
-            instance.avatar.save('image.png', file, save=True)
+        file = ContentFile(avatar_data.read())
+        instance.avatar.save('image.png', file, save=True)
         return instance
 
     class Meta:
@@ -230,12 +223,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             ingredients_data = validated_data.pop('ingredients')
             tags_data = validated_data.pop('tags')
             recipe = Recipe.objects.create(**validated_data)
-            ingredients_data = [
-                {
-                    'ingredient': ingredient_data['ingredient'],
-                    'amount': ingredient_data['amount']
-                } for ingredient_data in ingredients_data
-            ]
+            ingredients_data = get_ingredients_data(ingredients_data)
+
             IngredientAmount.objects.bulk_create(
                 [
                     IngredientAmount(
@@ -262,13 +251,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             tags_data = validated_data.get('tags')
             if ingredients_data:
                 IngredientAmount.objects.filter(recipe_id=instance.id).delete()
-                data = [
-                    {
-                        'ingredient': ingredient_data['ingredient'],
-                        'amount': ingredient_data['amount']
-                    }
-                    for ingredient_data in ingredients_data
-                ]
+                data = get_ingredients_data(ingredients_data)
                 IngredientAmount.objects.bulk_create(
                     [
                         IngredientAmount(

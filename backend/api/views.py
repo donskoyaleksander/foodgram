@@ -274,7 +274,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request, pk=None):
         shopping_list = get_shopping_list(self.request.user)
-        print(shopping_list)
         response = FileResponse(
             iter([shopping_list.getvalue()]), content_type='text/csv'
         )
