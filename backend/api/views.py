@@ -1,6 +1,3 @@
-
-
-
 from django.db.models import Exists, OuterRef
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
@@ -102,7 +99,9 @@ class UserViewSet(viewsets.ModelViewSet):
         try:
             user.update_password(
                 new_password=serializer.validated_data.get('new_password'),
-                old_password=serializer.validated_data.data.get('current_password')
+                old_password=serializer.validated_data.data.get(
+                    'current_password'
+                )
             )
         except ValueError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
