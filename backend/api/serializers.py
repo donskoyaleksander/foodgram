@@ -24,12 +24,7 @@ from recipes.models import (
 
 
 class UserSerializer(UserCreateSerializer):
-    is_subscribed = serializers.SerializerMethodField()
-
-    # def get_is_subscribed(self, obj):
-    #     if 'is_subscribed' in dir(obj):
-    #         return obj.is_subscribed
-    #     return False
+    is_subscribed = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
         model = User
@@ -43,7 +38,7 @@ class UserSerializer(UserCreateSerializer):
 class AvatarSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField(required=False)
 
-    def validate(self, attrs):
+    def validate_avatar(self, attrs):
         if not attrs:
             raise serializers.ValidationError('Empty request')
         return attrs
@@ -93,8 +88,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         required=True,
         validators=[cooking_time_validator]
     )
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
+    is_favorited = serializers.BooleanField(default=False)
+    is_in_shopping_cart = serializers.BooleanField(default=False)
 
     def get_ingredients(self, obj):
         ingredients = IngredientAmountSerializer(
@@ -113,58 +108,48 @@ class RecipeSerializer(serializers.ModelSerializer):
             formatted_ingredients.append(formatted_ingredient)
         return formatted_ingredients
 
-    def get_is_favorited(self, obj):
-        if 'is_favorite' in dir(obj):
-            return obj.is_favorite
-        return False
-
-    def get_is_in_shopping_cart(self, obj):
-        if 'is_in_shopping_cart' in dir(obj):
-            return obj.is_in_shopping_cart
-        return False
-
-    def to_internal_value(self, data):
-        tags_ids = data.get('tags')
-        Ingredients_data = data.get('ingredients')
-        internal_data = super().to_internal_value(data)
-        tags = []
-        try:
-            for tags_id in tags_ids:
-                tags.append(Tag.objects.get(pk=tags_id))
-        except Tag.DoesNotExist:
-            raise serializers.ValidationError(
-                {'tags': ['Tag does not exist']},
-                code='invalid',
-            )
-        except TypeError:
-            raise serializers.ValidationError(
-                {'tags': ['Required field']},
-                code='invalid',
-            )
-        internal_data['tags'] = tags
-        ingredients = []
-        try:
-            for Ingredient_data in Ingredients_data:
-                ingredients.append(
-                    {
-                        'ingredient': Ingredient.objects.get(
-                            pk=Ingredient_data['id']
-                        ),
-                        'amount': Ingredient_data['amount']
-                    }
-                )
-        except Ingredient.DoesNotExist:
-            raise serializers.ValidationError(
-                {'ingredients': ['Ingredient does not exist']},
-                code='invalid',
-            )
-        except TypeError:
-            raise serializers.ValidationError(
-                {'ingredients': ['Required field']},
-                code='invalid',
-            )
-        internal_data['ingredients'] = ingredients
-        return internal_data
+    # def to_internal_value(self, data):
+    #     tags_ids = data.get('tags')
+    #     Ingredients_data = data.get('ingredients')
+    #     internal_data = super().to_internal_value(data)
+    #     tags = []
+    #     try:
+    #         for tags_id in tags_ids:
+    #             tags.append(Tag.objects.get(pk=tags_id))
+    #     except Tag.DoesNotExist:
+    #         raise serializers.ValidationError(
+    #             {'tags': ['Tag does not exist']},
+    #             code='invalid',
+    #         )
+    #     except TypeError:
+    #         raise serializers.ValidationError(
+    #             {'tags': ['Required field']},
+    #             code='invalid',
+    #         )
+    #     internal_data['tags'] = tags
+    #     ingredients = []
+    #     try:
+    #         for Ingredient_data in Ingredients_data:
+    #             ingredients.append(
+    #                 {
+    #                     'ingredient': Ingredient.objects.get(
+    #                         pk=Ingredient_data['id']
+    #                     ),
+    #                     'amount': Ingredient_data['amount']
+    #                 }
+    #             )
+    #     except Ingredient.DoesNotExist:
+    #         raise serializers.ValidationError(
+    #             {'ingredients': ['Ingredient does not exist']},
+    #             code='invalid',
+    #         )
+    #     except TypeError:
+    #         raise serializers.ValidationError(
+    #             {'ingredients': ['Required field']},
+    #             code='invalid',
+    #         )
+    #     internal_data['ingredients'] = ingredients
+    #     return internal_data
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -352,6 +337,19 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'subscriber']
 
 
+class ShortRecipeSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    image = Base64ImageField()
+    cooking_time = serializers.IntegerField()
+
+    class Meta:
+        model = Recipe
+        fields = [
+            'id', 'name', 'image', 'cooking_time'
+        ]
+
+
 class ShoppingListSerializer(serializers.ModelSerializer):
     recipes = RecipeSerializer(read_only=True)
 
@@ -381,14 +379,9 @@ class ShoppingListSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        new_ret = collections.OrderedDict()
-        for value in ret.values():
-            new_ret['id'] = value['id']
-            new_ret['name'] = value['name']
-            new_ret['image'] = value['image']
-            new_ret['cooking_time'] = value['cooking_time']
-        return new_ret
+        return ShortRecipeSerializer(
+            instance.recipes, context=self.context
+        ).data
 
     class Meta:
         model = ShoppingList
