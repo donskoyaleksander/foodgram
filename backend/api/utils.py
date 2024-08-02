@@ -30,9 +30,9 @@ def get_shopping_list(user):
 
 def get_ingredients_data(data):
     ingredients_data = [
-                {
-                    'ingredient': data['ingredient'],
-                    'amount': data['amount']
-                } for data in data
-            ]
+        {
+            'ingredient': data['ingredient'],
+            'amount': data['amount']
+        } for data in data
+    ]
     return ingredients_data
