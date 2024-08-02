@@ -1,6 +1,5 @@
 
-import io
-import csv
+
 
 from django.db.models import Exists, OuterRef
 from django.http import FileResponse
@@ -16,6 +15,7 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
 )
 
+from api.utils import get_shopping_list
 from api.filters import IngredientFilter, RecipetFilter
 from api.paginations import NoPagination
 from api.permissions import RecipePermission
@@ -38,9 +38,7 @@ from recipes.models import (
     ShoppingList,
     Subscription,
 )
-
-
-DOMAIN = '127.0.0.1:8000'
+from foodgram.settings import DOMAIN
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -81,8 +79,6 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def avatar(self, request, *args, **kwargs):
         user = self.request.user
-        if user.avatar:
-            user.avatar.delete()
         serializer = AvatarSerializer(instance=user, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -105,8 +101,8 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         try:
             user.update_password(
-                new_password=request.data.get('new_password'),
-                old_password=request.data.get('current_password')
+                new_password=serializer.validated_data.get('new_password'),
+                old_password=serializer.validated_data.data.get('current_password')
             )
         except ValueError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -187,30 +183,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = NoPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = IngredientFilter
-
-
-def get_shopping_list(user):
-    shopping_list = ShoppingList.objects.filter(user=user)
-    ingredient_counts = {}
-    response = io.StringIO()
-    writer = csv.writer(response)
-    writer.writerow(['Ingredient', 'Amount'])
-    for recipe in shopping_list:
-        ingredients = recipe.recipes.ingredients.all()
-        for ingredient in ingredients:
-            ingredient_amount = ingredient.ingredientamount_set.first()
-            if ingredient_amount.ingredient.name in ingredient_counts:
-                ingredient_counts[
-                    ingredient_amount.ingredient.name
-                ] += ingredient_amount.amount
-            else:
-                ingredient_counts[
-                    ingredient_amount.ingredient.name
-                ] = ingredient_amount.amount
-    for key, value in ingredient_counts.items():
-        writer.writerow([key, value])
-    response.seek(0)
-    return response
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
