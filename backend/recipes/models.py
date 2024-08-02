@@ -35,7 +35,7 @@ class Tag(models.Model):
 
 class Ingredient(models.Model):
     name = models.CharField(
-        'Ingridient', unique=True,
+        'Ingredient', unique=True,
         max_length=MAX_LENGTH_INGREDIENT
     )
     measurement_unit = models.CharField(
@@ -44,8 +44,8 @@ class Ingredient(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Ingridient'
-        verbose_name_plural = 'Ingridients'
+        verbose_name = 'Ingredient'
+        verbose_name_plural = 'Ingredients'
         ordering = ('name',)
 
     def __str__(self):
@@ -71,7 +71,7 @@ class Recipe(models.Model):
     image = models.ImageField()
     ingredients = models.ManyToManyField(
         Ingredient, through='IngredientAmount',
-        related_name='ingredients_amount'
+        related_name='recipes'
     )
     tags = models.ManyToManyField(Tag)
     short_link = models.SlugField(
@@ -102,18 +102,18 @@ class IngredientAmount(models.Model):
     )
     ingredient = models.ForeignKey(
         Ingredient, on_delete=models.CASCADE,
-        verbose_name='Ingridient'
+        verbose_name='Ingredient'
     )
     amount = models.PositiveIntegerField(
-        'Amount',
+        'Amount', unique=True,
         validators=[
             ingredient_amount_validator
         ]
     )
 
     class Meta:
-        verbose_name = 'Ingridient amount'
-        verbose_name_plural = 'Ingridients amount'
+        verbose_name = 'Ingredient amount'
+        verbose_name_plural = 'Ingredients amount'
         ordering = ('recipe',)
 
     def __str__(self):

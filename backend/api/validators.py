@@ -24,7 +24,7 @@ def ingredient_amount_validator(value):
     try:
         if int(value) <= 0:
             raise ValidationError(
-                'Number of ingridients should be above zero'
+                'Number of ingredients should be above zero'
             )
     except ValueError:
         raise ValidationError(
