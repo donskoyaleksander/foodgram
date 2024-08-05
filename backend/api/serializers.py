@@ -91,65 +91,48 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_favorited = serializers.BooleanField(default=False)
     is_in_shopping_cart = serializers.BooleanField(default=False)
 
-    def get_ingredients(self, obj):
-        ingredients = IngredientAmountSerializer(
-            IngredientAmount.objects.filter(recipe=obj), many=True
-        ).data
-        formatted_ingredients = []
-        for ingredient in ingredients:
-            formatted_ingredient = {
-                'id': ingredient['ingredient']['id'],
-                'name': ingredient['ingredient']['name'],
-                'measurement_unit': ingredient[
-                    'ingredient'
-                ]['measurement_unit'],
-                'amount': ingredient['amount'],
-            }
-            formatted_ingredients.append(formatted_ingredient)
-        return formatted_ingredients
-
-    # def to_internal_value(self, data):
-    #     tags_ids = data.get('tags')
-    #     Ingredients_data = data.get('ingredients')
-    #     internal_data = super().to_internal_value(data)
-    #     tags = []
-    #     try:
-    #         for tags_id in tags_ids:
-    #             tags.append(Tag.objects.get(pk=tags_id))
-    #     except Tag.DoesNotExist:
-    #         raise serializers.ValidationError(
-    #             {'tags': ['Tag does not exist']},
-    #             code='invalid',
-    #         )
-    #     except TypeError:
-    #         raise serializers.ValidationError(
-    #             {'tags': ['Required field']},
-    #             code='invalid',
-    #         )
-    #     internal_data['tags'] = tags
-    #     ingredients = []
-    #     try:
-    #         for Ingredient_data in Ingredients_data:
-    #             ingredients.append(
-    #                 {
-    #                     'ingredient': Ingredient.objects.get(
-    #                         pk=Ingredient_data['id']
-    #                     ),
-    #                     'amount': Ingredient_data['amount']
-    #                 }
-    #             )
-    #     except Ingredient.DoesNotExist:
-    #         raise serializers.ValidationError(
-    #             {'ingredients': ['Ingredient does not exist']},
-    #             code='invalid',
-    #         )
-    #     except TypeError:
-    #         raise serializers.ValidationError(
-    #             {'ingredients': ['Required field']},
-    #             code='invalid',
-    #         )
-    #     internal_data['ingredients'] = ingredients
-    #     return internal_data
+    def to_internal_value(self, data):
+        tags_ids = data.get('tags')
+        Ingredients_data = data.get('ingredients')
+        internal_data = super().to_internal_value(data)
+        tags = []
+        try:
+            for tags_id in tags_ids:
+                tags.append(Tag.objects.get(pk=tags_id))
+        except Tag.DoesNotExist:
+            raise serializers.ValidationError(
+                {'tags': ['Tag does not exist']},
+                code='invalid',
+            )
+        except TypeError:
+            raise serializers.ValidationError(
+                {'tags': ['Required field']},
+                code='invalid',
+            )
+        internal_data['tags'] = tags
+        ingredients = []
+        try:
+            for Ingredient_data in Ingredients_data:
+                ingredients.append(
+                    {
+                        'ingredient': Ingredient.objects.get(
+                            pk=Ingredient_data['id']
+                        ),
+                        'amount': Ingredient_data['amount']
+                    }
+                )
+        except Ingredient.DoesNotExist:
+            raise serializers.ValidationError(
+                {'ingredients': ['Ingredient does not exist']},
+                code='invalid',
+            )
+        except TypeError:
+            raise serializers.ValidationError(
+                {'ingredients': ['Required field']},
+                code='invalid',
+            )
+        internal_data['ingredients'] = ingredients
+        return internal_data
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
