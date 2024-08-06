@@ -3,6 +3,7 @@ from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.serializers import SetPasswordSerializer
+from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import viewsets, filters, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -23,7 +24,7 @@ from api.serializers import (
     FavoriteSerializer,
     SubscriptionSerializer,
     ShoppingListSerializer,
-    RecipeSerializer,
+    RecipeGetSerializer,
     AvatarSerializer,
 )
 from recipes.models import (
@@ -38,35 +39,29 @@ from recipes.models import (
 from foodgram.settings import DOMAIN
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    pk_url_kwarg = 'pk'
+class UserViewSet(DjoserUserViewSet):
     pagination_class = LimitOffsetPagination
     filter_backends = [filters.SearchFilter]
+    pk_url_kwarg = 'id'
     search_fields = ['username']
     http_method_names = ['get', 'post', 'put', 'delete']
 
     def get_queryset(self):
         user = self.request.user
+        queryset = User.objects.all()
         if user.is_authenticated:
             subscribers = Subscription.objects.filter(
                 subscriber=OuterRef('pk'), user=user
             )
-            return super().get_queryset().annotate(
+            queryset = queryset.annotate(
                 is_subscribed=Exists(subscribers)
             )
-        return super().get_queryset()
+        return queryset
 
-    @action(
-        detail=False,
-        methods=['get'],
-        permission_classes=[IsAuthenticated],
-    )
-    def me(self, request, *args, **kwargs):
-        serializer = self.get_serializer(
-            self.request.user
-        )
-        return Response(serializer.data)
+    def get_permissions(self):
+        if self.action == "me":
+            self.permission_classes = [IsAuthenticated]
+        return super().get_permissions()
 
     @action(
         detail=False,
@@ -89,27 +84,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=['post'],
-        permission_classes=[IsAuthenticated],
-    )
-    def set_password(self, request, *args, **kwargs):
-        user = self.request.user
-        serializer = self.get_serializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        try:
-            user.update_password(
-                new_password=serializer.validated_data.get('new_password'),
-                old_password=serializer.validated_data.data.get(
-                    'current_password'
-                )
-            )
-        except ValueError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        user.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(
-        detail=False,
         methods=['get'],
         permission_classes=[IsAuthenticated],
     )
@@ -127,7 +101,7 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def subscribe(self, request, *args, **kwargs):
         user = self.request.user
-        subscriber = get_object_or_404(User, pk=self.kwargs[self.pk_url_kwarg])
+        subscriber = get_object_or_404(User, pk=kwargs[self.pk_url_kwarg])
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(
@@ -144,13 +118,11 @@ class UserViewSet(viewsets.ModelViewSet):
     @subscribe.mapping.delete
     def unsubscride(self, request, *args, **kwargs):
         user = self.request.user
-        subscriber = get_object_or_404(User, pk=self.kwargs[self.pk_url_kwarg])
-        if Subscription.objects.filter(
+        subscriber = get_object_or_404(User, pk=kwargs[self.pk_url_kwarg])
+        del_count, _ = Subscription.objects.filter(
             user=user, subscriber=subscriber
-        ).exists():
-            Subscription.objects.filter(
-                user=user, subscriber=subscriber
-            ).delete()
+        ).delete()
+        if del_count:
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -160,14 +132,6 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'set_password':
             return SetPasswordSerializer
         return UserSerializer
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        if self.action == 'create':
-            context['exclude_fields'] = [
-                'is_subscribed', 'avatar'
-            ]
-        return context
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -186,8 +150,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.prefetch_related('author', 'ingredients', 'tags')
-    serializer_class = RecipeSerializer
     pk_url_kwarg = 'pk'
+    serializer_class = RecipeGetSerializer
     pagination_class = LimitOffsetPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecipetFilter
@@ -215,9 +179,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-
-    def perform_update(self, serializer):
-        serializer.save()
 
     def action_base_post(self):
         user = self.request.user
@@ -298,4 +259,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return ShoppingListSerializer
         if self.action == 'favorite':
             return FavoriteSerializer
-        return RecipeSerializer
+        if self.request.method == 'GET':
+            return RecipeGetSerializer
+        return super().get_serializer_class()

@@ -1,38 +1,40 @@
 import io
 import csv
+from django.db.models import Sum
 
-from recipes.models import ShoppingList
+from recipes.models import ShoppingList, IngredientAmount
 
 
 def get_shopping_list(user):
-    shopping_list = ShoppingList.objects.filter(user=user)
     ingredient_counts = {}
-    response = io.StringIO()
-    writer = csv.writer(response)
-    writer.writerow(['Ingredient', 'Amount'])
-    for recipe in shopping_list:
-        ingredients = recipe.recipes.ingredients.all()
-        for ingredient in ingredients:
-            ingredient_amount = ingredient.ingredientamount_set.first()
-            if ingredient_amount.ingredient.name in ingredient_counts:
-                ingredient_counts[
-                    ingredient_amount.ingredient.name
-                ] += ingredient_amount.amount
-            else:
-                ingredient_counts[
-                    ingredient_amount.ingredient.name
-                ] = ingredient_amount.amount
+    shopping_card = io.StringIO()
+    writer = csv.writer(shopping_card)
+    writer.writerow(['Ингредиент', 'Количество'])
+    ingredients_and_totals = IngredientAmount.objects.filter(
+        ingredient__in=ShoppingList.objects.filter(user=user).values_list(
+            'recipes__ingredients__id', flat=True
+        )
+    ).values('ingredient__name').annotate(total_amount=Sum('amount'))
+    for item in ingredients_and_totals:
+        ingredient_counts[item['ingredient__name']] = item['total_amount']
     for key, value in ingredient_counts.items():
         writer.writerow([key, value])
-    response.seek(0)
-    return response
+    shopping_card.seek(0)
+    return shopping_card
 
 
-def get_ingredients_data(data):
-    ingredients_data = [
+def get_ingredients_data(data, instance):
+    data = [
         {
             'ingredient': data['ingredient'],
             'amount': data['amount']
         } for data in data
     ]
-    return ingredients_data
+
+    return IngredientAmount.objects.bulk_create(
+        [
+            IngredientAmount(
+                recipe=instance, **ingredient_data
+            ) for ingredient_data in data
+        ],
+    )

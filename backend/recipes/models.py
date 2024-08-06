@@ -115,6 +115,12 @@ class IngredientAmount(models.Model):
         verbose_name = 'Ingredient amount'
         verbose_name_plural = 'Ingredients amount'
         ordering = ('recipe',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'ingredient'],
+                name="unique_subscribers"
+            ),
+        ]
 
     def __str__(self):
         return self.name
