@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'recipes.apps.RecipesConfig'
 ]
 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
