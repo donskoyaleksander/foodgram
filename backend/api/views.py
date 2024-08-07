@@ -26,6 +26,7 @@ from api.serializers import (
     ShoppingListSerializer,
     RecipeGetSerializer,
     AvatarSerializer,
+    CreatetUserSerializer,
 )
 from recipes.models import (
     Recipe,
@@ -131,6 +132,8 @@ class UserViewSet(DjoserUserViewSet):
             return SubscriptionSerializer
         if self.action == 'set_password':
             return SetPasswordSerializer
+        if self.action == 'create':
+            return CreatetUserSerializer
         return UserSerializer
 
 

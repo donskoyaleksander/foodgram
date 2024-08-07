@@ -17,12 +17,13 @@ from recipes.models import (
 )
 
 
-class ShortUserSerializer(UserCreateSerializer):
+class CreatetUserSerializer(UserCreateSerializer):
     class Meta:
         model = User
         fields = [
             'id', 'email', 'username', 'first_name', 'last_name',
         ]
+        required_fields = ['username', 'first_name', 'last_name']
 
 
 class UserSerializer(UserCreateSerializer):
@@ -30,17 +31,6 @@ class UserSerializer(UserCreateSerializer):
 
     def get_is_subscribed(self, obj):
         return getattr(obj, 'is_subscribed', False)
-
-    def to_representation(self, instance):
-        view = self.context.get('view')
-        if (
-            view and view.action == 'create'
-            and view.__class__.__name__ == 'UserViewSet'
-        ):
-            return ShortUserSerializer(
-                instance, context=self.context
-            ).data
-        return super().to_representation(instance)
 
     class Meta:
         model = User

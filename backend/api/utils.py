@@ -21,20 +21,3 @@ def get_shopping_list(user):
         writer.writerow([key, value])
     shopping_card.seek(0)
     return shopping_card
-
-
-def get_ingredients_data(data, instance):
-    data = [
-        {
-            'ingredient': data['ingredient'],
-            'amount': data['amount']
-        } for data in data
-    ]
-
-    return IngredientAmount.objects.bulk_create(
-        [
-            IngredientAmount(
-                recipe=instance, **ingredient_data
-            ) for ingredient_data in data
-        ],
-    )
