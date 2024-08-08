@@ -18,10 +18,12 @@ from recipes.models import (
 
 
 class CreatetUserSerializer(UserCreateSerializer):
+
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'username', 'first_name', 'last_name',
+            'id', 'email', 'username', 'first_name',
+            'last_name', 'password'
         ]
         required_fields = ['username', 'first_name', 'last_name']
 

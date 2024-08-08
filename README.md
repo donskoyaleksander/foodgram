@@ -6,4 +6,4 @@
 Проект завернут в Docker-контейнеры;
 Образы foodgram_frontend и foodgram_backend запушены на DockerHub;
 Реализован workflow c автодеплоем на удаленный сервер и отправкой сообщения в Telegram;
-Адрес сервера: http://158.160.83.194
+Адрес: https://foodgram-new.ddns.net/
