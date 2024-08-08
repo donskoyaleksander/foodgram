@@ -25,6 +25,7 @@ from api.serializers import (
     SubscriptionSerializer,
     ShoppingListSerializer,
     RecipeGetSerializer,
+    RecipeWriteSerializer,
     AvatarSerializer,
     CreatetUserSerializer,
 )
@@ -154,7 +155,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.prefetch_related('author', 'ingredients', 'tags')
     pk_url_kwarg = 'pk'
-    serializer_class = RecipeGetSerializer
+    serializer_class = RecipeWriteSerializer
     pagination_class = LimitOffsetPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecipetFilter
