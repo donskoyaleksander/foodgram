@@ -44,7 +44,7 @@ class UserSerializer(UserCreateSerializer):
 
 
 class AvatarSerializer(serializers.ModelSerializer):
-    avatar = Base64ImageField(required=False)
+    avatar = Base64ImageField(required=True)
 
     def validate_avatar(self, attrs):
         if not attrs:
